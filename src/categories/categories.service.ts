@@ -1,0 +1,59 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+
+@Injectable()
+export class CategoriesService {
+  constructor(private prisma: PrismaService) {}
+
+  create(data: CreateCategoryDto) {
+    return this.prisma.category.create({
+      data,
+    });
+  }
+
+  findAll() {
+    return this.prisma.category.findMany({
+      include: {
+        products: true,
+      },
+    });
+  }
+
+  async findOne(id: number) {
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      include: { products: true },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Categoria não encontrada');
+    }
+
+    return category;
+  }
+
+  async update(id: number, data: UpdateCategoryDto) {
+    await this.findOne(id);
+
+    return this.prisma.category.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async remove(id: number) {
+    const category = await this.findOne(id);
+
+    if (category.products.length > 0) {
+      throw new BadRequestException(
+        'Não é possível excluir uma categoria que possui produtos.',
+      );
+    }
+
+    await this.prisma.category.delete({ where: { id } });
+
+    return { message: 'Categoria removida com sucesso' };
+  }
+}

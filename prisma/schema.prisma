@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id             Int      @id @default(autoincrement())
+  name           String
+  categoryId     Int
+  category       Category @relation(fields: [categoryId], references: [id])
+  salePrice      Float
+  costPrice      Float?
+  isActive       Boolean  @default(true)
+  isStockTracked Boolean  @default(true)
+  stockQuantity  Float    @default(0)
+
+  saleItems SaleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id        Int           @id @default(autoincrement())
+  name      String        @unique
+
+  payments  SalePayment[]
+  fees      MachineFee[]  // ← NOVO
+  expenses Expense[]
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Sale {
+  id           Int      @id @default(autoincrement())
+  saleDateTime DateTime @default(now())
+  totalValue   Float
+  notes        String?
+
+  items    SaleItem[]
+  payments SalePayment[] 
+
+  isCanceled   Boolean   @default(false)
+  canceledAt   DateTime?
+  cancelReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SaleItem {
+  id         Int     @id @default(autoincrement())
+  saleId     Int
+  sale       Sale    @relation(fields: [saleId], references: [id])
+  productId  Int
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Float
+  unitPrice  Float
+  totalPrice Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Machine {
+  id        Int           @id @default(autoincrement())
+  name      String
+
+  fees      MachineFee[]
+  payments  SalePayment[]
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model MachineFee {
+  id              Int           @id @default(autoincrement())
+
+  machineId       Int
+  machine         Machine       @relation(fields: [machineId], references: [id])
+
+  paymentMethodId Int
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  brand           CardBrand
+  feePercentage   Float       // ex: 1.99 (para 1,99%)
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+
+model SalePayment {
+  id              Int            @id @default(autoincrement())
+
+  saleId          Int
+  sale            Sale           @relation(fields: [saleId], references: [id])
+
+  paymentMethodId Int
+  paymentMethod   PaymentMethod  @relation(fields: [paymentMethodId], references: [id])
+
+  machineId       Int?
+  machine         Machine?       @relation(fields: [machineId], references: [id])
+
+  brand           CardBrand?     // ← NOVO (pode ser null em dinheiro, fiado, etc.)
+
+  amount          Float          // valor cobrado
+  feePercentage   Float?         // taxa aplicada
+  netAmount       Float          // valor líquido recebido (amount - fee)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Expense {
+  id              Int            @id @default(autoincrement())
+  expenseDate     DateTime
+  description     String
+  type            ExpenseType
+  value           Float
+  paymentMethodId Int?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ExpenseType {
+  FIXA
+  VARIAVEL
+  OPERACIONAL
+}
+
+enum CardBrand {
+  VISA
+  MASTERCARD
+  ELO
+  AMEX
+  OUTROS
+}
