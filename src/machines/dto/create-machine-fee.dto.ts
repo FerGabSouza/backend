@@ -1,15 +1,25 @@
-import { IsEnum, IsInt, IsNumber, IsPositive } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  Min,
+} from 'class-validator';
 import { CardBrand } from '@prisma/client';
 
 export class CreateMachineFeeDto {
   @IsInt()
   @IsPositive()
-  paymentMethodId: number; // ex: DÉBITO, CRÉDITO, PIX
+  paymentMethodId: number;
 
+  // Bandeira opcional (pra PIX, DINHEIRO, etc.)
+  @IsOptional()
   @IsEnum(CardBrand)
-  brand: CardBrand;        // VISA, MASTERCARD, OUTROS...
+  brand?: CardBrand;
 
+  // Permite 0, mas não permite negativo
   @IsNumber()
-  @IsPositive()
-  feePercentage: number;   // ex: 1.99
+  @Min(0)
+  feePercentage: number;
 }

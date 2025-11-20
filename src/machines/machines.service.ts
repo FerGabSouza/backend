@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMachineDto } from './dto/create-machine.dto';
 import { UpdateMachineDto } from './dto/update-machine.dto';
+import { CardBrand } from '@prisma/client';
+
 
 @Injectable()
 export class MachinesService {
@@ -23,13 +25,23 @@ export class MachinesService {
         data: data.fees.map((fee) => ({
           machineId: machine.id,
           paymentMethodId: fee.paymentMethodId,
-          brand: fee.brand,
+          // se não informar brand (PIX, DINHEIRO etc.), salva como OUTROS
+          brand: fee.brand ?? CardBrand.OUTROS,
           feePercentage: fee.feePercentage,
         })),
       });
     }
 
-    return this.findOne(machine.id);
+    return this.prisma.machine.findUnique({
+      where: { id: machine.id },
+      include: {
+        fees: {
+          include: {
+            paymentMethod: true,
+          },
+        },
+      },
+    });
   }
 
   findAll() {
