@@ -16,6 +16,10 @@ const prismaMock = {
     update: jest.fn(),
     delete: jest.fn(),
   },
+  product: {
+    updateMany: jest.fn(),
+  },
+  $transaction: jest.fn(),
 } as unknown as PrismaService;
 
 describe('CategoriesService', () => {
@@ -129,6 +133,80 @@ describe('CategoriesService', () => {
     });
 
     await expect(service.remove(1)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('deve pausar categoria e todos os produtos dela', async () => {
+    (prisma.category.findUnique as any).mockResolvedValue({
+      id: 1,
+      name: 'Cozinha',
+      isActive: true,
+      products: [],
+    });
+
+    const updatedCategory = {
+      id: 1,
+      name: 'Cozinha',
+      isActive: false,
+    };
+
+    (prisma.category.update as any).mockReturnValue(updatedCategory);
+    (prisma.product.updateMany as any).mockReturnValue({ count: 3 });
+    (prisma.$transaction as any).mockResolvedValue([
+      updatedCategory,
+      { count: 3 },
+    ]);
+
+    const result = await service.updateStatus(1, { isActive: false });
+
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { isActive: false },
+    });
+
+    expect(prisma.product.updateMany).toHaveBeenCalledWith({
+      where: { categoryId: 1 },
+      data: { isActive: false },
+    });
+
+    expect(result.message).toBe('Categoria pausada com sucesso');
+    expect(result.category.isActive).toBe(false);
+  });
+
+  it('deve ativar categoria e todos os produtos dela', async () => {
+    (prisma.category.findUnique as any).mockResolvedValue({
+      id: 1,
+      name: 'Cozinha',
+      isActive: false,
+      products: [],
+    });
+
+    const updatedCategory = {
+      id: 1,
+      name: 'Cozinha',
+      isActive: true,
+    };
+
+    (prisma.category.update as any).mockReturnValue(updatedCategory);
+    (prisma.product.updateMany as any).mockReturnValue({ count: 3 });
+    (prisma.$transaction as any).mockResolvedValue([
+      updatedCategory,
+      { count: 3 },
+    ]);
+
+    const result = await service.updateStatus(1, { isActive: true });
+
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { isActive: true },
+    });
+
+    expect(prisma.product.updateMany).toHaveBeenCalledWith({
+      where: { categoryId: 1 },
+      data: { isActive: true },
+    });
+
+    expect(result.message).toBe('Categoria ativada com sucesso');
+    expect(result.category.isActive).toBe(true);
   });
 
   it('deve remover categoria sem produtos', async () => {

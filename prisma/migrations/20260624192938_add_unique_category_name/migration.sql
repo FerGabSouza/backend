@@ -5,4 +5,4 @@
 
 */
 -- CreateIndex
-CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");
+-- CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");

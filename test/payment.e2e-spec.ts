@@ -6,7 +6,7 @@ import { resetDatabase } from './utils/reset-database';
 describe('PaymentMethods E2E', () => {
   beforeAll(async () => {
     const { prisma } = await initTestApp();
-    await resetDatabase(prisma);
+    await resetDatabase(prisma!);
   });
 
   beforeEach(async () => {

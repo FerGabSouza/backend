@@ -11,6 +11,7 @@ import {
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { UpdateCategoryStatusDto } from './dto/update-category-status.dto';
 
 @Controller('categories')
 export class CategoriesController {
@@ -29,6 +30,14 @@ export class CategoriesController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.categoriesService.findOne(id);
+  }
+
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCategoryStatusDto,
+  ) {
+    return this.categoriesService.updateStatus(id, dto);
   }
 
   @Patch(':id')

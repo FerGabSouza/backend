@@ -1,98 +1,101 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+"""
+Backend do projeto bar-system
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Este README fornece uma visão completa do backend (NestJS + Prisma + PostgreSQL): setup, arquitetura, módulos, scripts e boas práticas.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Requisitos
+- Node.js 18+ (recomendado)
+- npm
+- Docker (recomendado para Postgres) ou PostgreSQL local
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+Início rápido (PowerShell)
+1) Subir o Postgres (raiz do repositório):
+```powershell
+cd 'C:\Users\User\Documents\Projetos\bar-system'
+docker-compose up -d
 ```
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+2) Instalar dependências e rodar em modo dev:
+```powershell
+cd backend
+npm install
+npm run start:dev
 ```
 
-## Run tests
+3) Endpoints: http://localhost:3000
 
-```bash
-# unit tests
-$ npm run test
+Variáveis de ambiente
+- `backend/.env` — DATABASE_URL usada em runtime
+- `backend/.env.test` — DATABASE_URL para testes (E2E)
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+Banco de dados (Prisma)
+- Schema: `backend/prisma/schema.prisma` (modelos: Category, Product, PaymentMethod, Machine, MachineFee, Sale, SaleItem, SalePayment, Expense, enums)
+- Criar / aplicar migrations:
+```powershell
+cd backend
+npx prisma migrate dev --name init      # criar em dev
+npx prisma migrate deploy               # aplicar em produção/teste
+npx prisma generate                      # gerar client
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+Prisma Studio (UI):
+```powershell
+npx prisma studio
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Visão geral dos módulos (o que cada um faz)
 
-## Resources
+- `src/prisma`
+  - `PrismaModule` / `PrismaService`: encapsula o `PrismaClient`. Liga/desliga conexão com o banco, usado por todos os serviços.
 
-Check out a few resources that may come in handy when working with NestJS:
+- `src/categories`
+  - Responsabilidade: CRUD de categorias
+  - Controller expõe rotas REST; Service contém regras de negócio (validação, tratamento de erro de unique). DTOs validam entrada.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- `src/products`
+  - Responsabilidade: CRUD de produtos, relacionamento com `Category`.
+  - Campos importantes: `salePrice`, `costPrice`, `isStockTracked`, `stockQuantity`.
 
-## Support
+- `src/machines`
+  - Responsabilidade: gerenciar maquininhas e `MachineFee` (taxas por marca/pagamento).
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- `src/payment-methods`
+  - Responsabilidade: gerenciar formas de pagamento (PIX, DINHEIRO, CREDITO, etc.).
 
-## Stay in touch
+- `src/sales`
+  - Responsabilidade: criar vendas complexas com itens e pagamentos.
+  - Principais pontos:
+    - Validação de itens e estoque
+    - Agregação de itens por produto
+    - Cálculo de taxas e `netAmount` por pagamento
+    - Criação de `Sale`, `SaleItem` e `SalePayment` dentro de `prisma.$transaction`
+    - Cancelamento: estorna estoque e marca venda como cancelada
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- `test` e utilitários
+  - `test/utils/reset-database.ts`: helper que limpa tabelas entre testes
+  - `test/utils/test-app.ts`: inicializa a aplicação Nest para E2E
 
-## License
+Scripts úteis (em `backend/package.json`)
+- `npm run start:dev` - iniciar em modo desenvolvimento (watch)
+- `npm run build` - compilar
+- `npm run start:prod` - executar build
+- `npm run lint` - ESLint + Prettier (aplica --fix)
+- `npm run test` - Jest unit tests
+- `npm run test:e2e` - Jest e2e
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Dicas e troubleshooting
+- `ETARGET` no npm: versão inexistente no registry. Use `npm view <pkg> versions --json` para checar e ajuste `package.json`.
+- Prisma: se migrations falharem, verifique `DATABASE_URL` e se o banco existe. Para testes, crie o DB apontado em `.env.test`.
+- Lint: alguns avisos em testes sobre `no-unsafe-*` podem surgir devido a mocks; use `jest.Mocked<T>` ou relaxe regras apenas para arquivos de teste.
+
+Boas práticas / próximos passos
+- Tipar mocks nos testes (`jest.Mocked<PrismaService>`) para evitar `any` nos specs
+- Integrar Swagger para documentar endpoints
+- Adicionar CI que rode lint, build, migrate-test e testes
+- Monitoramento (Sentry) e logs estruturados
+
+Contribuindo
+- Crie branches por feature/bugfix e garanta que `npm run lint` e `npm test` passem antes de abrir PR
+
+Problemas? Abra um issue com as saídas de `npm install`, `npm audit`, `npm test` e eu te ajudo.
+

@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { UpdateCategoryStatusDto } from './dto/update-category-status.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -54,10 +55,51 @@ export class CategoriesService {
   async update(id: number, data: UpdateCategoryDto) {
     await this.findOne(id);
 
-    return this.prisma.category.update({
-      where: { id },
-      data,
-    });
+    try {
+      return await this.prisma.category.update({
+        where: { id },
+        data,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException(
+              `Já existe uma categoria com o nome '${data.name}'`,
+          );
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  async updateStatus(id: number, data: UpdateCategoryStatusDto) {
+    await this.findOne(id);
+
+    const [category] = await this.prisma.$transaction([
+      this.prisma.category.update({
+        where: { id },
+        data: {
+          isActive: data.isActive,
+        },
+      }),
+
+      this.prisma.product.updateMany({
+        where: {
+          categoryId: id,
+        },
+        data: {
+          isActive: data.isActive,
+        },
+      }),
+    ]);
+
+    return {
+      message: data.isActive
+          ? 'Categoria ativada com sucesso'
+          : 'Categoria pausada com sucesso',
+      category,
+    };
   }
 
   async remove(id: number) {
