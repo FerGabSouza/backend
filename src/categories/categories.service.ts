@@ -17,7 +17,10 @@ export class CategoriesService {
   async create(data: CreateCategoryDto) {
     try {
       return await this.prisma.category.create({
-        data,
+        data: {
+          ...data,
+          name: data.name.trim(),
+        },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -54,17 +57,21 @@ export class CategoriesService {
 
   async update(id: number, data: UpdateCategoryDto) {
     await this.findOne(id);
+    const sanitizedData = {
+      ...data,
+      name: data.name?.trim(),
+    };
 
     try {
       return await this.prisma.category.update({
         where: { id },
-        data,
+        data: sanitizedData,
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ConflictException(
-              `Já existe uma categoria com o nome '${data.name}'`,
+            `Já existe uma categoria com o nome '${data.name}'`,
           );
         }
       }
@@ -96,8 +103,8 @@ export class CategoriesService {
 
     return {
       message: data.isActive
-          ? 'Categoria ativada com sucesso'
-          : 'Categoria pausada com sucesso',
+        ? 'Categoria ativada com sucesso'
+        : 'Categoria pausada com sucesso',
       category,
     };
   }

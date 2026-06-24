@@ -229,4 +229,37 @@ describe('CategoriesService', () => {
     });
     expect(result.message).toContain('Categoria removida com sucesso');
   });
+
+  it('deve remover espaços antes e depois do nome ao criar categoria', async () => {
+    (prisma.category.create as any).mockResolvedValue({
+      id: 1,
+      name: 'Drinks',
+    });
+
+    await service.create({ name: '   Drinks   ' } as any);
+
+    expect(prisma.category.create).toHaveBeenCalledWith({
+      data: { name: 'Drinks' },
+    });
+  });
+
+  it('deve remover espaços antes e depois do nome ao atualizar categoria', async () => {
+    (prisma.category.findUnique as any).mockResolvedValue({
+      id: 1,
+      name: 'Antiga',
+      products: [],
+    });
+
+    (prisma.category.update as any).mockResolvedValue({
+      id: 1,
+      name: 'Cozinha',
+    });
+
+    await service.update(1, { name: '   Cozinha   ' } as any);
+
+    expect(prisma.category.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { name: 'Cozinha' },
+    });
+  });
 });
