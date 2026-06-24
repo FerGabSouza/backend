@@ -1,7 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoriesService } from './categories.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 const prismaMock = {
   category: {
@@ -42,6 +47,18 @@ describe('CategoriesService', () => {
       data: { name: 'Drinks' },
     });
     expect(result.id).toBe(1);
+  });
+
+  it('deve lançar ConflictException quando nome de categoria é duplicado', async () => {
+    const error = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed on the fields: (`name`)',
+      { code: 'P2002', clientVersion: '4.0.0' },
+    );
+    (prisma.category.create as any).mockRejectedValue(error);
+
+    await expect(
+      service.create({ name: 'Drinks' } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('deve listar categorias', async () => {
@@ -111,9 +128,7 @@ describe('CategoriesService', () => {
       products: [{ id: 10, name: 'Caipirinha' }],
     });
 
-    await expect(service.remove(1)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.remove(1)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('deve remover categoria sem produtos', async () => {

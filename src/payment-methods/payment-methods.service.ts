@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
@@ -32,7 +36,8 @@ export class PaymentMethodsService {
       where: { id },
     });
 
-    if (!method) throw new NotFoundException('Forma de pagamento não encontrada');
+    if (!method)
+      throw new NotFoundException('Forma de pagamento não encontrada');
 
     return method;
   }

@@ -15,4 +15,5 @@ async function bootstrap() {
 
   await app.listen(3000);
 }
-bootstrap();
+// start the app and ignore the returned promise explicitly
+void bootstrap();

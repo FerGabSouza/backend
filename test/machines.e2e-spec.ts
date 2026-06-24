@@ -1,53 +1,52 @@
-import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+// backend/test/machines.e2e-spec.ts
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { initTestApp, getApp, getPrisma, closeTestApp } from './utils/test-app';
+import { resetDatabase } from './utils/reset-database';
 
 describe('Machines E2E', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const { prisma } = await initTestApp();
+    await resetDatabase(prisma);
+  });
 
-    app = moduleRef.createNestApplication();
-    await app.init();
-
-    prisma = app.get(PrismaService);
-
-    await prisma.machineFee.deleteMany({});
-    await prisma.machine.deleteMany({});
-    await prisma.paymentMethod.deleteMany({});
+  beforeEach(async () => {
+    await resetDatabase(getPrisma());
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp();
   });
 
-  it('deve cadastrar maquininha com fees', async () => {
+  it('POST /machines deve cadastrar maquininha com fees', async () => {
+    const prisma = getPrisma();
+
     const credito = await prisma.paymentMethod.create({
       data: { name: 'CREDITO' },
     });
 
-    const server = app.getHttpServer();
+    const pix = await prisma.paymentMethod.create({
+      data: { name: 'PIX' },
+    });
+
+    const server = getApp().getHttpServer();
 
     const res = await request(server)
       .post('/machines')
       .send({
         name: 'Infinity Fatinha',
         fees: [
+          { paymentMethodId: credito.id, brand: 'VISA', feePercentage: 3.5 },
           {
             paymentMethodId: credito.id,
-            brand: 'VISA',
-            feePercentage: 3.5,
+            brand: 'MASTERCARD',
+            feePercentage: 3.2,
           },
+          { paymentMethodId: pix.id, feePercentage: 0 },
         ],
       })
       .expect(201);
 
     expect(res.body.id).toBeDefined();
+    expect(res.body.name).toBe('Infinity Fatinha');
   });
 });

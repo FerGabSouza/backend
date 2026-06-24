@@ -1,38 +1,29 @@
-import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+// test/products.e2e-spec.ts
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { initTestApp, getApp, getPrisma } from './utils/test-app';
+import { resetDatabase } from './utils/reset-database';
 
 describe('Products E2E', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    await initTestApp();
+    await resetDatabase(getPrisma());
+  });
 
-    app = moduleRef.createNestApplication();
-    await app.init();
-
-    prisma = app.get(PrismaService);
-
-    await prisma.saleItem.deleteMany({});
-    await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
+  beforeEach(async () => {
+    await resetDatabase(getPrisma());
   });
 
   afterAll(async () => {
-    await app.close();
+    await resetDatabase(getPrisma());
   });
 
-  it('deve criar produto e listar', async () => {
+  it('POST /products deve criar produto e listar', async () => {
+    const prisma = getPrisma();
+    const server = getApp().getHttpServer();
+
     const category = await prisma.category.create({
       data: { name: 'Drinks' },
     });
-
-    const server = app.getHttpServer();
 
     const createRes = await request(server)
       .post('/products')
@@ -50,43 +41,60 @@ describe('Products E2E', () => {
     expect(createRes.body.id).toBeDefined();
 
     const listRes = await request(server).get('/products').expect(200);
-    expect(listRes.body.length).toBeGreaterThanOrEqual(1);
+
+    expect(Array.isArray(listRes.body)).toBe(true);
+    expect(listRes.body.length).toBe(1);
   });
 
-  it('deve atualizar produto', async () => {
-    const product = await prisma.product.create({
-      data: {
-        name: 'Velho',
-        categoryId: (await prisma.category.create({ data: { name: 'Cozinha' } }))
-          .id,
-        salePrice: 10,
-        stockQuantity: 10,
-      },
+  it('PATCH /products/:id deve atualizar produto', async () => {
+    const prisma = getPrisma();
+    const server = getApp().getHttpServer();
+
+    // tudo que o teste usa é criado DEPOIS do reset
+    const category = await prisma.category.create({
+      data: { name: 'Cervejas' },
     });
 
-    const server = app.getHttpServer();
+    const product = await prisma.product.create({
+      data: {
+        name: 'Cerveja Lager',
+        categoryId: category.id,
+        salePrice: 10,
+        costPrice: 4,
+        isActive: true,
+        isStockTracked: true,
+        stockQuantity: 100,
+      },
+    });
 
     const res = await request(server)
       .patch(`/products/${product.id}`)
-      .send({ name: 'Novo Nome' })
+      .send({ name: 'Cerveja Pilsen' })
       .expect(200);
 
-    expect(res.body.name).toBe('Novo Nome');
+    expect(res.body.id).toBe(product.id);
+    expect(res.body.name).toBe('Cerveja Pilsen');
   });
 
-  it('deve deletar produto', async () => {
-    const category = await prisma.category.create({ data: { name: 'Apagar' } });
+  it('DELETE /products/:id deve remover produto', async () => {
+    const prisma = getPrisma();
+    const server = getApp().getHttpServer();
+
+    const category = await prisma.category.create({
+      data: { name: 'Shots' },
+    });
 
     const product = await prisma.product.create({
       data: {
-        name: 'Pra deletar',
+        name: 'Tequila',
         categoryId: category.id,
-        salePrice: 10,
-        stockQuantity: 5,
+        salePrice: 15,
+        costPrice: 5,
+        isActive: true,
+        isStockTracked: true,
+        stockQuantity: 30,
       },
     });
-
-    const server = app.getHttpServer();
 
     await request(server).delete(`/products/${product.id}`).expect(200);
 

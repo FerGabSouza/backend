@@ -6,8 +6,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { CancelSaleDto } from './dto/cancel-sale.dto';
-import { CardBrand } from '@prisma/client';
-import { MachineFee } from '@prisma/client';
+import {
+  CardBrand,
+  MachineFee,
+  Product,
+  Machine,
+  PaymentMethod,
+} from '@prisma/client';
 
 @Injectable()
 export class SalesService {
@@ -27,7 +32,7 @@ export class SalesService {
     // 1. Produtos
     const productIds = [...new Set(data.items.map((i) => i.productId))];
 
-    const products = await this.prisma.product.findMany({
+    const products: Product[] = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
     });
 
@@ -37,12 +42,17 @@ export class SalesService {
       );
     }
 
-    const productMap = new Map<number, any>(products.map((p) => [p.id, p]));
+    const productMap = new Map<number, Product>(products.map((p) => [p.id, p]));
 
     // 2. Agrupa itens, valida estoque e calcula total
     const aggregatedItems = new Map<
       number,
-      { productId: number; quantity: number; unitPrice: number; totalPrice: number }
+      {
+        productId: number;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+      }
     >();
 
     for (const item of data.items) {
@@ -92,11 +102,11 @@ export class SalesService {
     }
 
     // 3. Validar métodos de pagamento, máquinas e buscar fees
-    const paymentMethodIds = [
+    const paymentMethodIds: number[] = [
       ...new Set(data.payments.map((p) => p.paymentMethodId)),
     ];
 
-    const machineIds = [
+    const machineIds: number[] = [
       ...new Set(
         data.payments
           .map((p) => p.machineId)
@@ -105,9 +115,10 @@ export class SalesService {
     ];
 
     // Buscar paymentMethods
-    const paymentMethods = await this.prisma.paymentMethod.findMany({
-      where: { id: { in: paymentMethodIds } },
-    });
+    const paymentMethods: PaymentMethod[] =
+      await this.prisma.paymentMethod.findMany({
+        where: { id: { in: paymentMethodIds } },
+      });
 
     if (paymentMethods.length !== paymentMethodIds.length) {
       throw new BadRequestException(
@@ -116,7 +127,7 @@ export class SalesService {
     }
 
     // Buscar máquinas
-    const machines = machineIds.length
+    const machines: Machine[] = machineIds.length
       ? await this.prisma.machine.findMany({
           where: { id: { in: machineIds } },
         })
@@ -128,7 +139,7 @@ export class SalesService {
       );
     }
 
-    const machineMap = new Map<number, any>();
+    const machineMap = new Map<number, Machine>();
     machines.forEach((m) => machineMap.set(m.id, m));
 
     // Buscar taxas (MachineFee)
@@ -143,7 +154,12 @@ export class SalesService {
     // mapa de fees: "machineId-paymentMethodId-brand"
     const feesMap = new Map<
       string,
-      { machineId: number; paymentMethodId: number; brand: CardBrand; feePercentage: number }
+      {
+        machineId: number;
+        paymentMethodId: number;
+        brand: CardBrand;
+        feePercentage: number;
+      }
     >();
 
     machineFees.forEach((fee) => {
@@ -327,7 +343,7 @@ export class SalesService {
     return sale;
   }
 
-    async cancel(id: number, data: CancelSaleDto) {
+  async cancel(id: number, data: CancelSaleDto) {
     const sale = await this.prisma.sale.findUnique({
       where: { id },
       include: {
@@ -373,5 +389,4 @@ export class SalesService {
 
     return { message: 'Venda cancelada com sucesso.' };
   }
-
 }

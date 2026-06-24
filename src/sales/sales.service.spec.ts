@@ -60,7 +60,7 @@ describe('SalesService', () => {
   it('deve lançar erro se a soma dos pagamentos não bater com o total da venda', async () => {
     // Arrange
     // Produto custa 25, quantidade 2 => total = 50
-    prisma.product.findMany.mockResolvedValue([
+    (prisma.product.findMany as jest.Mock).mockResolvedValue([
       {
         id: 1,
         name: 'Caipirinha',
@@ -72,13 +72,13 @@ describe('SalesService', () => {
       } as any,
     ]);
 
-    prisma.paymentMethod.findMany.mockResolvedValue([
+    (prisma.paymentMethod.findMany as jest.Mock).mockResolvedValue([
       { id: 1, name: 'DINHEIRO' } as any,
     ]);
 
     // não tem maquininha nesse teste
-    prisma.machine.findMany.mockResolvedValue([]);
-    prisma.machineFee.findMany.mockResolvedValue([]);
+    (prisma.machine.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.machineFee.findMany as jest.Mock).mockResolvedValue([]);
 
     const dto: any = {
       notes: 'Mesa teste',
@@ -101,7 +101,7 @@ describe('SalesService', () => {
   });
 
   it('deve calcular fee e netAmount usando MachineFee quando tiver maquininha e brand', async () => {
-    prisma.product.findMany.mockResolvedValue([
+    (prisma.product.findMany as jest.Mock).mockResolvedValue([
       {
         id: 1,
         name: 'Caipirinha',
@@ -113,15 +113,15 @@ describe('SalesService', () => {
       } as any,
     ]);
 
-    prisma.paymentMethod.findMany.mockResolvedValue([
+    (prisma.paymentMethod.findMany as jest.Mock).mockResolvedValue([
       { id: 4, name: 'CREDITO' } as any,
     ]);
 
-    prisma.machine.findMany.mockResolvedValue([
+    (prisma.machine.findMany as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Infinity Fatinha' } as any,
     ]);
 
-    prisma.machineFee.findMany.mockResolvedValue([
+    (prisma.machineFee.findMany as jest.Mock).mockResolvedValue([
       {
         id: 1,
         machineId: 1,
@@ -132,20 +132,20 @@ describe('SalesService', () => {
     ]);
 
     // mock da transação: só chama o callback e retorna o que ele retornar
-    (prisma.$transaction as jest.Mock).mockImplementation(
-      async (cb: any) => cb(prisma),
+    (prisma.$transaction as jest.Mock).mockImplementation((cb: any) =>
+      cb(prisma),
     );
 
-    prisma.sale.create.mockResolvedValue({
+    (prisma.sale.create as jest.Mock).mockResolvedValue({
       id: 1,
       totalValue: 25,
       notes: null,
     } as any);
 
-    prisma.saleItem.createMany.mockResolvedValue({} as any);
-    prisma.salePayment.createMany.mockResolvedValue({} as any);
+    (prisma.saleItem.createMany as jest.Mock).mockResolvedValue({} as any);
+    (prisma.salePayment.createMany as jest.Mock).mockResolvedValue({} as any);
 
-    prisma.sale.findUnique.mockResolvedValue({
+    (prisma.sale.findUnique as jest.Mock).mockResolvedValue({
       id: 1,
       totalValue: 25,
       payments: [

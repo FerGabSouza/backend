@@ -1,67 +1,29 @@
-import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+// backend/test/sales.e2e-spec.ts
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { initTestApp, getApp, getPrisma, closeTestApp } from './utils/test-app';
+import { resetDatabase } from './utils/reset-database';
 
 describe('Sales E2E', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-
   beforeAll(async () => {
-    process.env.DATABASE_URL =
-      process.env.DATABASE_URL ||
-      'postgresql://baruser:barpass@localhost:5432/bar_db_test?schema=public';
-
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleRef.createNestApplication();
-    await app.init();
-
-    prisma = app.get(PrismaService);
-
-    // limpa as tabelas principais
-    await prisma.salePayment.deleteMany({});
-    await prisma.saleItem.deleteMany({});
-    await prisma.sale.deleteMany({});
-
-    await prisma.machineFee.deleteMany({});
-    await prisma.machine.deleteMany({});
-
-    await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
-
-    await prisma.paymentMethod.deleteMany({});
-  });
-
-  afterAll(async () => {
-    await app.close();
+    const { prisma } = await initTestApp();
+    await resetDatabase(prisma);
   });
 
   beforeEach(async () => {
-    await prisma.salePayment.deleteMany({});
-    await prisma.saleItem.deleteMany({});
-    await prisma.sale.deleteMany({});
-
-    await prisma.machineFee.deleteMany({});
-    await prisma.machine.deleteMany({});
-
-    await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
-
-    await prisma.paymentMethod.deleteMany({});
+    await resetDatabase(getPrisma());
   });
 
+  afterAll(async () => {
+    await closeTestApp();
+  });
 
   it('deve criar uma venda completa com múltiplos pagamentos', async () => {
-    // cria categoria
+    const prisma = getPrisma();
+
     const cat = await prisma.category.create({
       data: { name: 'Drinks' },
     });
 
-    // cria produto
     const prod = await prisma.product.create({
       data: {
         name: 'Caipirinha',
@@ -74,18 +36,16 @@ describe('Sales E2E', () => {
       },
     });
 
-    // métodos de pagamento
-    const dinheiro = await prisma.paymentMethod.create({
+    const money = await prisma.paymentMethod.create({
       data: { name: 'DINHEIRO' },
     });
-    const credito = await prisma.paymentMethod.create({
+    const credit = await prisma.paymentMethod.create({
       data: { name: 'CREDITO' },
     });
     const pix = await prisma.paymentMethod.create({
       data: { name: 'PIX' },
     });
 
-    // maquininha + fees
     const machine = await prisma.machine.create({
       data: { name: 'Infinity Fatinha' },
     });
@@ -94,7 +54,7 @@ describe('Sales E2E', () => {
       data: [
         {
           machineId: machine.id,
-          paymentMethodId: credito.id,
+          paymentMethodId: credit.id,
           brand: 'VISA',
           feePercentage: 3.5,
         },
@@ -107,7 +67,7 @@ describe('Sales E2E', () => {
       ],
     });
 
-    const server = app.getHttpServer();
+    const server = getApp().getHttpServer();
 
     const res = await request(server)
       .post('/sales')
@@ -116,11 +76,11 @@ describe('Sales E2E', () => {
         items: [{ productId: prod.id, quantity: 4 }], // total 100
         payments: [
           {
-            paymentMethodId: dinheiro.id,
+            paymentMethodId: money.id,
             amount: 50,
           },
           {
-            paymentMethodId: credito.id,
+            paymentMethodId: credit.id,
             machineId: machine.id,
             brand: 'VISA',
             amount: 30,
@@ -135,6 +95,8 @@ describe('Sales E2E', () => {
       .expect(201);
 
     expect(res.body.totalValue).toBe(100);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].quantity).toBe(4);
     expect(res.body.payments).toHaveLength(3);
   });
 });

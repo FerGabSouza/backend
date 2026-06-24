@@ -83,9 +83,7 @@ describe('PaymentMethodsService', () => {
       paymentMethodId: 1,
     });
 
-    await expect(service.remove(1)).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(service.remove(1)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('deve deletar método se não estiver em uso', async () => {

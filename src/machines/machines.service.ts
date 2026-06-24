@@ -8,7 +8,6 @@ import { CreateMachineDto } from './dto/create-machine.dto';
 import { UpdateMachineDto } from './dto/update-machine.dto';
 import { CardBrand } from '@prisma/client';
 
-
 @Injectable()
 export class MachinesService {
   constructor(private prisma: PrismaService) {}

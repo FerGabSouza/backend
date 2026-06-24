@@ -1,33 +1,24 @@
-import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+// backend/test/categories.e2e-spec.ts
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { initTestApp, getApp, getPrisma, closeTestApp } from './utils/test-app';
+import { resetDatabase } from './utils/reset-database';
 
 describe('Categories E2E', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const { prisma } = await initTestApp();
+    await resetDatabase(prisma);
+  });
 
-    app = moduleRef.createNestApplication();
-    await app.init();
-
-    prisma = app.get(PrismaService);
-
-    await prisma.product.deleteMany({});
-    await prisma.category.deleteMany({});
+  beforeEach(async () => {
+    await resetDatabase(getPrisma());
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp();
   });
 
   it('POST /categories deve criar categoria', async () => {
-    const server = app.getHttpServer();
+    const server = getApp().getHttpServer();
 
     const res = await request(server)
       .post('/categories')
@@ -39,30 +30,35 @@ describe('Categories E2E', () => {
   });
 
   it('GET /categories deve listar categorias', async () => {
-    const server = app.getHttpServer();
+    const prisma = getPrisma();
+    await prisma.category.create({ data: { name: 'Cozinha' } });
+
+    const server = getApp().getHttpServer();
 
     const res = await request(server).get('/categories').expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].name).toBe('Cozinha');
   });
 
   it('GET /categories/:id deve retornar uma categoria', async () => {
-    const cat = await prisma.category.findFirst();
-    const server = app.getHttpServer();
+    const prisma = getPrisma();
+    const cat = await prisma.category.create({ data: { name: 'Snacks' } });
 
-    const res = await request(server)
-      .get(`/categories/${cat.id}`)
-      .expect(200);
+    const server = getApp().getHttpServer();
+
+    const res = await request(server).get(`/categories/${cat.id}`).expect(200);
 
     expect(res.body.id).toBe(cat.id);
+    expect(res.body.name).toBe('Snacks');
   });
 
   it('PATCH /categories/:id deve atualizar categoria', async () => {
-    const cat = await prisma.category.create({
-      data: { name: 'Antiga' },
-    });
-    const server = app.getHttpServer();
+    const prisma = getPrisma();
+    const cat = await prisma.category.create({ data: { name: 'Antiga' } });
+
+    const server = getApp().getHttpServer();
 
     const res = await request(server)
       .patch(`/categories/${cat.id}`)
@@ -73,17 +69,16 @@ describe('Categories E2E', () => {
   });
 
   it('DELETE /categories/:id deve remover categoria', async () => {
+    const prisma = getPrisma();
     const cat = await prisma.category.create({
       data: { name: 'Para deletar' },
     });
-    const server = app.getHttpServer();
+
+    const server = getApp().getHttpServer();
 
     await request(server).delete(`/categories/${cat.id}`).expect(200);
 
-    const deleted = await prisma.category.findUnique({
-      where: { id: cat.id },
-    });
-
+    const deleted = await prisma.category.findUnique({ where: { id: cat.id } });
     expect(deleted).toBeNull();
   });
 });

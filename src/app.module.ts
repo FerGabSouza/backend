@@ -8,10 +8,15 @@ import { MachinesModule } from './machines/machines.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-
-
 @Module({
-  imports: [PrismaModule, ProductsModule, CategoriesModule, PaymentMethodsModule, SalesModule, MachinesModule],
+  imports: [
+    PrismaModule,
+    ProductsModule,
+    CategoriesModule,
+    PaymentMethodsModule,
+    SalesModule,
+    MachinesModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

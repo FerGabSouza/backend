@@ -32,10 +32,7 @@ export class MachinesController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateMachineDto,
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateMachineDto) {
     return this.machinesService.update(id, dto);
   }
 

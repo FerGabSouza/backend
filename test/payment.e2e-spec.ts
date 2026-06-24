@@ -1,76 +1,72 @@
-import { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+// backend/test/payment.e2e-spec.ts
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { initTestApp, getApp, getPrisma, closeTestApp } from './utils/test-app';
+import { resetDatabase } from './utils/reset-database';
 
 describe('PaymentMethods E2E', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const { prisma } = await initTestApp();
+    await resetDatabase(prisma);
+  });
 
-    app = moduleRef.createNestApplication();
-    await app.init();
-
-    prisma = app.get(PrismaService);
-
-    await prisma.salePayment.deleteMany({});
-    await prisma.paymentMethod.deleteMany({});
+  beforeEach(async () => {
+    await resetDatabase(getPrisma());
   });
 
   afterAll(async () => {
-    await app.close();
+    await closeTestApp();
   });
 
-  it('deve criar e listar métodos de pagamento', async () => {
-    const server = app.getHttpServer();
+  it('POST /payment-methods e GET /payment-methods', async () => {
+    const server = getApp().getHttpServer();
 
     await request(server)
       .post('/payment-methods')
       .send({ name: 'DINHEIRO' })
       .expect(201);
 
-    const res = await request(server)
-      .get('/payment-methods')
-      .expect(200);
-
-    expect(res.body.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('deve atualizar método de pagamento', async () => {
-    const pm = await prisma.paymentMethod.create({
-      data: { name: 'CARTÃO VELHO' },
-    });
-
-    const server = app.getHttpServer();
-
-    const res = await request(server)
-      .patch(`/payment-methods/${pm.id}`)
-      .send({ name: 'CARTÃO NOVO' })
-      .expect(200);
-
-    expect(res.body.name).toBe('CARTÃO NOVO');
-  });
-
-  it('deve deletar método de pagamento não utilizado', async () => {
-    const pm = await prisma.paymentMethod.create({
-      data: { name: 'APAGAR' },
-    });
-
-    const server = app.getHttpServer();
-
     await request(server)
-      .delete(`/payment-methods/${pm.id}`)
-      .expect(200);
+      .post('/payment-methods')
+      .send({ name: 'PIX' })
+      .expect(201);
 
-    const deleted = await prisma.paymentMethod.findUnique({
-      where: { id: pm.id },
+    const res = await request(server).get('/payment-methods').expect(200);
+
+    expect(res.body.length).toBe(2);
+    expect(res.body.map((m: any) => m.name).sort()).toEqual([
+      'DINHEIRO',
+      'PIX',
+    ]);
+  });
+
+  it('DELETE /payment-methods/:id não deve deletar método em uso', async () => {
+    const prisma = getPrisma();
+    const method = await prisma.paymentMethod.create({
+      data: { name: 'CREDITO' },
     });
 
-    expect(deleted).toBeNull();
+    // cria uma venda usando esse metodo para bloquear delete
+    const sale = await prisma.sale.create({
+      data: { totalValue: 10 },
+    });
+
+    await prisma.salePayment.create({
+      data: {
+        saleId: sale.id,
+        paymentMethodId: method.id,
+        amount: 10,
+        netAmount: 10,
+      },
+    });
+
+    const server = getApp().getHttpServer();
+
+    const res = await request(server)
+      .delete(`/payment-methods/${method.id}`)
+      .expect(400);
+
+    expect(res.body.message).toContain(
+      'Não é possível excluir: já existe venda usando essa forma de pagamento.',
+    );
   });
 });
