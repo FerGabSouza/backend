@@ -1,0 +1,26 @@
+﻿
+> backend@0.0.1 test
+> jest categories.service
+
+node.exe : PASS src/categories/categories.service.spec.ts
+No C:\Program Files\nodejs\npm.ps1:29 caractere:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/catego...service.spec.ts:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  CategoriesService
+    ÔêÜ deve criar categoria (16 ms)
+    ÔêÜ deve lan├ºar ConflictException quando nome de categoria ├® duplicado (4 ms)
+    ÔêÜ deve listar categorias (3 ms)
+    ÔêÜ deve retornar uma categoria por id (3 ms)
+    ÔêÜ deve lan├ºar NotFound se categoria n├úo existir (3 ms)
+    ÔêÜ deve atualizar categoria (3 ms)
+    ÔêÜ n├úo deve remover categoria que possui produtos (2 ms)
+    ÔêÜ deve remover categoria sem produtos (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        1.194 s, estimated 2 s
+Ran all test suites matching categories.service.
