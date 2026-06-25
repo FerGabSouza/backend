@@ -29,17 +29,26 @@ describe('Categories E2E', () => {
     expect(res.body.name).toBe('Drinks');
   });
 
-  it('GET /categories deve listar categorias', async () => {
+  it('GET /categories deve listar categorias ordenadas e com contagem de produtos', async () => {
     const prisma = getPrisma();
-    await prisma.category.create({ data: { name: 'Cozinha' } });
+
+    await prisma.category.create({ data: { name: 'Zebra' } });
+    await prisma.category.create({ data: { name: 'Cervejas' } });
+    await prisma.category.create({ data: { name: 'Abacaxi' } });
 
     const server = getApp().getHttpServer();
 
     const res = await request(server).get('/categories').expect(200);
 
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBe(1);
-    expect(res.body[0].name).toBe('Cozinha');
+    expect(res.body.length).toBe(3);
+
+    expect(res.body[0].name).toBe('Abacaxi');
+    expect(res.body[1].name).toBe('Cervejas');
+    expect(res.body[2].name).toBe('Zebra');
+
+    expect(res.body[0]._count).toBeDefined();
+    expect(typeof res.body[0]._count.products).toBe('number');
   });
 
   it('GET /categories/:id deve retornar uma categoria', async () => {
@@ -80,5 +89,32 @@ describe('Categories E2E', () => {
 
     const deleted = await prisma.category.findUnique({ where: { id: cat.id } });
     expect(deleted).toBeNull();
+  });
+
+  it('não deve criar categoria com apenas 1 caractere', () => {
+    return request(getApp().getHttpServer())
+      .post('/categories')
+      .send({
+        name: 'A',
+      })
+      .expect(400);
+  });
+
+  it('não deve criar categoria com mais de 50 caracteres', () => {
+    return request(getApp().getHttpServer())
+      .post('/categories')
+      .send({
+        name: 'A'.repeat(51),
+      })
+      .expect(400);
+  });
+
+  it('não deve criar categoria apenas com espaços', () => {
+    return request(getApp().getHttpServer())
+      .post('/categories')
+      .send({
+        name: '     ',
+      })
+      .expect(400);
   });
 });

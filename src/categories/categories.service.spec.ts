@@ -67,13 +67,28 @@ describe('CategoriesService', () => {
 
   it('deve listar categorias', async () => {
     (prisma.category.findMany as any).mockResolvedValue([
-      { id: 1, name: 'Drinks', products: [] },
+      {
+        id: 1,
+        name: 'Drinks',
+        _count: {
+          products: 0,
+        },
+      },
     ]);
 
     const result = await service.findAll();
 
     expect(prisma.category.findMany).toHaveBeenCalledWith({
-      include: { products: true },
+      orderBy: {
+        name: 'asc',
+      },
+      include: {
+        _count: {
+          select: {
+            products: true,
+          },
+        },
+      },
     });
     expect(result).toHaveLength(1);
   });
